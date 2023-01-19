@@ -13,24 +13,8 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// func initRedis() *redis.Client {
-// 	client := redis.NewClient(&redis.Options{
-// 		Addr:     os.Getenv("DB_ADDR"),
-// 		Password: os.Getenv("DB_PASS"),
-// 		DB:       0, // = default DB
-// 	})
-
-// 	// Check connection
-// 	_, err := client.Ping().Result()
-// 	if err != nil {
-// 		fmt.Println("Error connecting to Redis")
-// 		os.Exit(1)
-// 	}
-
-// 	return client
-// }
-
 func handleConnection(nconn net.Conn) {
+	fmt.Println("handleConnection called")
 
 	defer nconn.Close()
 
@@ -66,11 +50,12 @@ func handleConnection(nconn net.Conn) {
 			fmt.Println("Error: ", err)
 			return
 		}
-
 	}
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Handler called")
+
 	fmt.Println("Print: GET request")
 	fmt.Fprintf(w, "GET request\n")
 
@@ -90,6 +75,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 var upgrader = websocket.Upgrader{} // use default options
 
 func websocketHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Websockethandler called")
 	ws, err := upgrader.Upgrade(w, r, nil)
 
 	if err != nil {
@@ -168,7 +154,7 @@ const PORT = process.env.PORT || 3333;
 
 const socket = new WebSocket("ws://localhost:" + PORT);
 
-window.onload = function() {
+window.onload = () => {
 
 	window.addEventListener("onload", function(evt) {
 		var pport = document.getElementById("port");
@@ -179,61 +165,63 @@ window.onload = function() {
 		pstatus.innerHTML = "Connected";
 
 	});
-}
+	
+	const testConnectionBtn = document.getElementById("test-conn");
+	testConnectionBtn.addEventListener("click", function(evt) {
+		evt.preventDefault();
+		testConnection();
+		});
+		
 
-const testConnectionBtn = document.getElementById("test-conn");
-testConnectionBtn.addEventListener("click", function(evt) {
-	evt.preventDefault();
-	testConnection();
-});
+	function testConnection() {
+		var pconnectionStatus = document.getElementById("connection-status");
+		var poutput = document.getElementById("output");
+		var input = document.getElementById("input").value;
 
-
-function testConnection() {
-	var pconnectionStatus = document.getElementById("connection-status");
-	var poutput = document.getElementById("output");
-	var input = document.getElementById("input").value;
-
-	fetch("http://https://termichat.herokuapp.com/chat", {
-		method: "POST",
-		headers: {
-			"Content-Type": "application/json"
-		},
-		body: JSON.stringify({
-			message: input
+		fetch("http://https://termichat.herokuapp.com/chat", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json"
+			},
+			body: JSON.stringify({
+				message: input
+			})
 		})
-	})
-	.then(function(response) {
-		return response.json();
-	})
-	.then(function(data) {
-		console.log(data);
-		pconnectionStatus.innerHTML = "Sent: " + input;
-		poutput.innerHTML += "Sent: " + input + " " + new Date().toLocaleString();
-	})
-	.catch(function(err) {
-		console.log(err);
-		pconnectionStatus.innerHTML = "Sent: " + input;
-		poutput.innerHTML += "Sent: " + input + " " + new Date().toLocaleString();
+		.then(function(response) {
+			return response.json();
+		})
+		.then(function(data) {
+			console.log(data);
+			pconnectionStatus.innerHTML = "Sent: " + input;
+			poutput.innerHTML += "Sent: " + input + " " + new Date().toLocaleString();
+		})
+		.catch(function(err) {
+			console.log(err);
+			pconnectionStatus.innerHTML = "Sent: " + input;
+			poutput.innerHTML += "Sent: " + input + " " + new Date().toLocaleString();
+		});
+	}
+
+	socket.addEventListener("open", function(evt) {
+		console.log("Connection open ...");
+		socket.send("Hello Server!");
 	});
+
+	socket.addEventListener("message", function(evt) {
+		console.log("Received Message: " + evt.data);
+		socket.close();
+	});
+
+	socket.addEventListener("close", function(evt) {
+		console.log("Connection closed.");
+	});
+
+	socket.addEventListener("error", function(evt) {
+		console.log("Error: " + evt.data);
+	});
+
 }
 
-socket.addEventListener("open", function(evt) {
-	console.log("Connection open ...");
-	socket.send("Hello Server!");
-});
-
-socket.addEventListener("message", function(evt) {
-	console.log("Received Message: " + evt.data);
-	socket.close();
-});
-
-socket.addEventListener("close", function(evt) {
-	console.log("Connection closed.");
-});
-
-socket.addEventListener("error", function(evt) {
-	console.log("Error: " + evt.data);
-});
 
 </script>
 </head>
