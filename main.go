@@ -13,6 +13,105 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+type Client struct {
+	id   string
+	conn *websocket.Conn
+	room *Room
+	send chan *Message
+}
+
+func (c *Client) read() {
+	defer func() {
+		c.room.unregister <- c
+		c.conn.Close()
+	}()
+
+	c.conn.SetReadLimit(1024)
+	c.conn.SetReadDeadline(time.Now().Add(60 * time.Second)) // Set read deadline to 60 secs from now if no message is received
+
+	c.conn.SetPongHandler(func(string) error {
+		c.conn.SetReadDeadline(time.Now().Add(60 * time.Second)) // Add more time(60s) to the read deadline if a pong is received
+		return nil
+	})
+
+	for {
+		_, message, err := c.conn.ReadMessage() // Read JSON message from client
+		if err != nil {
+			log.Println("Error reading message: ", err)
+			break
+		}
+
+		c.room.broadcast <- &Message{
+			Message:  string(message),
+			Type:     "message",
+			ClientId: c.id,
+		}
+	}
+}
+
+func (c *Client) write() {
+	ticker := time.NewTicker(50 * time.Second) // Send ping every 50 seconds
+	defer func() {
+		c.conn.Close()
+		ticker.Stop()
+	}()
+
+	for {
+		select {
+		case message, ok := <-c.send:
+			c.conn.SetWriteDeadline(time.Now().Add(60 * time.Second)) // Set write deadline to 60 seconds from now
+
+			if !ok { // Check if channel is closed
+				c.conn.WriteMessage(websocket.CloseMessage, []byte("Connection is closed"))
+				return
+			}
+
+			c.conn.WriteJSON(message)
+
+		case <-ticker.C:
+			c.conn.SetWriteDeadline(time.Now().Add(60 * time.Second)) // Set write deadline to 60 seconds from now
+			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				return
+			}
+		}
+	}
+}
+
+func newClient(id string, room *Room, w http.ResponseWriter, r *http.Request) *Client {
+
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Println("Error upgrading connection: ", err)
+		return nil
+	}
+
+	c := &Client{
+		id:   id,
+		conn: conn,
+		room: room,
+		send: make(chan *Message),
+	}
+
+	go c.read()
+	go c.write()
+
+	return c
+}
+
+// 			w, err := c.conn.NextWriter(websocket.TextMessage)
+// 			if err != nil {
+// 				return
+// 			}
+
+// 			w.Write([]byte(message.Message))
+
+// 			if err := w.Close(); err != nil {
+// 				return
+// 			}
+// 		}
+// 	}
+// }
+
 func handleConnection(nconn net.Conn) {
 	fmt.Println("handleConnection called")
 
@@ -71,6 +170,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Message: %s\n", r.Form.Get("message"))
 	}
 }
+
 func home(w http.ResponseWriter, r *http.Request) {
 	homeTemplate.Execute(w, "https://"+r.Host+"/")
 
@@ -100,33 +200,45 @@ var upgrader = websocket.Upgrader{} // use default options
 func websocketHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Websockethandler called") // Works without SSL/TLS
 	ws, err := upgrader.Upgrade(w, r, nil)
-
 	if err != nil {
 		log.Print("upgrade:", err)
 		return
 	}
+
+	room := newRoom()
+	id := r.URL.Query().Get("id")
+
+	if id == "" {
+		fmt.Println("Error: ID is not set")
+		return
+	}
+
+	client := newClient(id, room, w, r)
+	room.register <- client
+
+	fmt.Println("Client registered in room ", client.room)
+
 	defer ws.Close()
 
-	for {
-		mt, message, err := ws.ReadMessage()
+	// for {
+	// 	mt, message, err := ws.ReadMessage()
 
-		if err != nil {
-			fmt.Fprintf(w, "%+v", err)
-		}
-		fmt.Printf("Received: %s", message)
-		err = ws.WriteMessage(mt, message)
-		if err != nil {
-			fmt.Fprintf(w, "%+v", err)
-		}
-		home(w, r)
-	}
+	// 	if err != nil {
+	// 		fmt.Fprintf(w, "%+v", err)
+	// 	}
+	// 	fmt.Printf("Received: %s", message)
+	// 	err = ws.WriteMessage(mt, message)
+	// 	if err != nil {
+	// 		fmt.Fprintf(w, "%+v", err)
+	// 	}
+	// 	home(w, r)
+	// }
 
 }
 
 func main() {
 	// http.HandleFunc("/", home)
 	http.HandleFunc("/test", test)
-	http.HandleFunc("/ws", websocketHandler)
 
 	http.HandleFunc("/chat", handler)
 
