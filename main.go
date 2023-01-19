@@ -74,7 +74,9 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "The current time is: %s\n", time.Now())
 
 	if r.Method == "POST" {
-		fmt.Println("POST request")
+		r.ParseForm()
+
+		fmt.Println("Print: POST request")
 		fmt.Fprintf(w, "POST request\n")
 
 		r.GetBody()
@@ -113,6 +115,8 @@ func main() {
 
 	http.HandleFunc("/chat", handler)
 
+	fmt.Println("Starting server on port 3333")
+
 	port := os.Getenv("PORT")
 	http.ListenAndServe(":"+port, nil)
 
@@ -147,14 +151,14 @@ var homeTemplate = template.Must(template.New("").Parse(`
 <head>
 <meta charset="utf-8">
 <script>
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 3333;
 
 window.addEventListener("load", function(evt) {
     var pport = document.getElementById("port");
 	var pstatus = document.getElementById("status");
 	
 
-	pport.innerHTML = PORT;
+	pport.innerHTML = 3333;
 	pstatus.innerHTML = "Connected";
 
 });
