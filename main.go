@@ -71,44 +71,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Message: %s\n", r.Form.Get("message"))
 	}
 }
-
-var upgrader = websocket.Upgrader{} // use default options
-
-func websocketHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Websockethandler called")
-	ws, err := upgrader.Upgrade(w, r, nil)
-
-	if err != nil {
-		log.Print("upgrade:", err)
-		return
-	}
-	defer ws.Close()
-
-	for {
-		mt, message, err := ws.ReadMessage()
-
-		if err != nil {
-			fmt.Fprintf(w, "%+v", err)
-		}
-		fmt.Printf("Received: %s", message)
-		err = ws.WriteMessage(mt, message)
-		if err != nil {
-			fmt.Fprintf(w, "%+v", err)
-		}
-	}
-}
-
-func main() {
-	http.HandleFunc("/", home)
-	http.HandleFunc("/test", test)
-	http.HandleFunc("/ws", websocketHandler)
-
-	http.HandleFunc("/chat", handler)
-
-	fmt.Println("Starting server on port 3333")
-	port := os.Getenv("PORT")
-	http.ListenAndServe(":"+port, nil)
-	fmt.Println("Server started on port ", port)
+func home(w http.ResponseWriter, r *http.Request) {
+	homeTemplate.Execute(w, "https://"+r.Host+"/")
 
 	// Listen for incoming connections
 	listener, err := net.Listen("tcp", os.Getenv("PORT"))
@@ -131,16 +95,54 @@ func main() {
 	}
 }
 
-func home(w http.ResponseWriter, r *http.Request) {
-	homeTemplate.Execute(w, "https://"+r.Host+"/")
+var upgrader = websocket.Upgrader{} // use default options
+
+func websocketHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Websockethandler called") // Works without SSL/TLS
+	ws, err := upgrader.Upgrade(w, r, nil)
+
+	if err != nil {
+		log.Print("upgrade:", err)
+		return
+	}
+	defer ws.Close()
+
+	for {
+		mt, message, err := ws.ReadMessage()
+
+		if err != nil {
+			fmt.Fprintf(w, "%+v", err)
+		}
+		fmt.Printf("Received: %s", message)
+		err = ws.WriteMessage(mt, message)
+		if err != nil {
+			fmt.Fprintf(w, "%+v", err)
+		}
+		home(w, r)
+	}
+
+}
+
+func main() {
+	// http.HandleFunc("/", home)
+	http.HandleFunc("/test", test)
+	http.HandleFunc("/ws", websocketHandler)
+
+	http.HandleFunc("/chat", handler)
+
+	fmt.Println("Starting server on port 3333")
+	port := os.Getenv("PORT")
+	http.ListenAndServe(":"+port, nil)
+	fmt.Println("Server started on port ", port)
+
 }
 
 func test(w http.ResponseWriter, r *http.Request) {
 	testTemplate.Execute(w, "ws://"+r.Host+"/ws")
 
-	if (r.FormValue("message")) != "" {
-		fmt.Println("Message received: ", r.FormValue("message")) // Dette virker
-	}
+	// if (r.FormValue("message")) != "" {
+	// 	fmt.Println("Message received: ", r.FormValue("message")) // Dette virker
+	// }
 }
 
 var testTemplate = template.Must(template.New("").Parse(`
