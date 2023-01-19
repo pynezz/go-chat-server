@@ -43,7 +43,7 @@ func handleConnection(conn net.Conn, client *redis.Client) {
 		fmt.Println("Message received: ", message)
 
 		// Store message in Redis
-		err := client.Set("message", message, 0).Err()
+		client.Set("message", message, 0).Err()
 	}
 }
 
