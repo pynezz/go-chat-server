@@ -148,7 +148,7 @@ func home(w http.ResponseWriter, r *http.Request) {
 	homeTemplate.Execute(w, "ws://"+r.Host+"/ws")
 
 	if (r.FormValue("message")) != "" {
-		fmt.Println("Message received: ", r.FormValue("message"))
+		fmt.Println("Message received: ", r.FormValue("message")) // Dette virker
 	}
 }
 
@@ -157,18 +157,28 @@ var homeTemplate = template.Must(template.New("").Parse(`
 <html>
 <head>
 <meta charset="utf-8">
+<style>
+body {
+	font-family: Arial, Helvetica, sans-serif;
+}
+
 <script>
 const PORT = process.env.PORT || 3333;
 
-window.addEventListener("load", function(evt) {
-    var pport = document.getElementById("port");
-	var pstatus = document.getElementById("status");
-	
+const socket = new WebSocket("ws://localhost:" + PORT);
 
-	pport.innerHTML = 3333;
-	pstatus.innerHTML = "Connected";
+window.onload = function() {
 
-});
+	window.addEventListener("onload", function(evt) {
+		var pport = document.getElementById("port");
+		var pstatus = document.getElementById("status");
+		
+
+		pport.innerHTML = 3333;
+		pstatus.innerHTML = "Connected";
+
+	});
+}
 
 const testConnectionBtn = document.getElementById("test-conn");
 testConnectionBtn.addEventListener("click", function(evt) {
@@ -205,6 +215,25 @@ function testConnection() {
 		poutput.innerHTML += "Sent: " + input + " " + new Date().toLocaleString();
 	});
 }
+
+socket.addEventListener("open", function(evt) {
+	console.log("Connection open ...");
+	socket.send("Hello Server!");
+});
+
+socket.addEventListener("message", function(evt) {
+	console.log("Received Message: " + evt.data);
+	socket.close();
+});
+
+socket.addEventListener("close", function(evt) {
+	console.log("Connection closed.");
+});
+
+socket.addEventListener("error", function(evt) {
+	console.log("Error: " + evt.data);
+});
+
 </script>
 </head>
 <body>
