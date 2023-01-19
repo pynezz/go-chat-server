@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"html/template"
 	"net"
 	"os"
 
@@ -87,3 +88,60 @@ func main() {
 		go handleConnection(conn)
 	}
 }
+
+var homeTemplate = template.Must(template.New("").Parse(`
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+const PORT = process.env.PORT;
+
+window.addEventListener("load", function(evt) {
+    var pport = document.getElementById("port");
+	var pstatus = document.getElementById("status");
+	
+
+	pport.innerHTML = PORT;
+	pstatus.innerHTML = "Connected";
+
+});
+
+const testConnection = document.getElementById("test-conn");
+testConnection.addEventListener("click", function(evt) {
+	evt.preventDefault();
+	testConnection();
+});
+
+
+function testConnection() {
+	var pconnectionStatus = document.getElementById("connection-status");
+	var poutput = document.getElementById("output");
+	var input = document.getElementById("input").value;
+
+	tcp.send(input);
+	pconnectionStatus.innerHTML = "Sent: " + input;
+	poutput.innerHTML += "Sent: " + input + " " + new Date().toLocaleString();
+
+	
+}
+</script>
+</head>
+<body>
+<table>
+<tr><td valign="top" width="50%">
+<h2>This is a simple dashboard displaying server status and logs.</h2>
+
+<form>
+<p id="port">---</p>
+<p id="status">---</p>
+<p><input id="input" type="text" value="Hello world!">
+<button id="test-conn">Test Connection</button>
+<p id="connection-status">---</p>
+</form>
+</td><td valign="top" width="50%">
+<div id="output" style="max-height: 70vh;overflow-y: scroll;"></div>
+</td></tr></table>
+</body>
+</html>
+`))
