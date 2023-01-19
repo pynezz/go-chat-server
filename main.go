@@ -237,14 +237,18 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	// http.HandleFunc("/", home)
-	http.HandleFunc("/test", test)
+	http.HandleFunc("/", home)
+	http.HandleFunc("/test", websocketHandler)
 
 	http.HandleFunc("/chat", handler)
 
 	fmt.Println("Starting server on port 3333")
 	port := os.Getenv("PORT")
-	http.ListenAndServe(":"+port, nil)
+	err := http.ListenAndServe(":"+port, nil)
+	if err != nil {
+		log.Fatal("ListenAndServe: ", err)
+	}
+
 	fmt.Println("Server started on port ", port)
 
 }

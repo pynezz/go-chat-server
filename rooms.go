@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 )
 
@@ -45,6 +46,7 @@ func (r *Room) run() {
 				log.Println("Ha det, ", client.id, "!")
 			}
 		case message := <-r.broadcast:
+			fmt.Println("Message: ", message.Message, " Type: ", message.Type, " ClientId: ", message.ClientId, "")
 			for client := range r.clients {
 				select {
 				case client.send <- message:
