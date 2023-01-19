@@ -237,8 +237,8 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	http.HandleFunc("/", home)
-	http.HandleFunc("/test", websocketHandler)
+	http.HandleFunc("/", test)
+	http.HandleFunc("/test", test)
 
 	http.HandleFunc("/chat", handler)
 
