@@ -71,7 +71,14 @@ func handleConnection(nconn net.Conn) {
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "The current time is: %s", time.Now())
+	fmt.Fprintf(w, "The current time is: %s\n", time.Now())
+
+	if r.Method == "POST" {
+		fmt.Fprintf(w, "POST request\n")
+
+		r.GetBody()
+		fmt.Fprintf(w, "Message: %s\n", r.Form.Get("message"))
+	}
 }
 
 var upgrader = websocket.Upgrader{} // use default options
@@ -151,8 +158,8 @@ window.addEventListener("load", function(evt) {
 
 });
 
-const testConnection = document.getElementById("test-conn");
-testConnection.addEventListener("click", function(evt) {
+const testConnectionBtn = document.getElementById("test-conn");
+testConnectionBtn.addEventListener("click", function(evt) {
 	evt.preventDefault();
 	testConnection();
 });
@@ -163,11 +170,28 @@ function testConnection() {
 	var poutput = document.getElementById("output");
 	var input = document.getElementById("input").value;
 
-	tcp.send(input);
-	pconnectionStatus.innerHTML = "Sent: " + input;
-	poutput.innerHTML += "Sent: " + input + " " + new Date().toLocaleString();
-
-
+	fetch("http://https://termichat.herokuapp.com/chat", {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json"
+		},
+		body: JSON.stringify({
+			message: input
+		})
+	})
+	.then(function(response) {
+		return response.json();
+	})
+	.then(function(data) {
+		console.log(data);
+		pconnectionStatus.innerHTML = "Sent: " + input;
+		poutput.innerHTML += "Sent: " + input + " " + new Date().toLocaleString();
+	})
+	.catch(function(err) {
+		console.log(err);
+		pconnectionStatus.innerHTML = "Sent: " + input;
+		poutput.innerHTML += "Sent: " + input + " " + new Date().toLocaleString();
+	});
 }
 </script>
 </head>
