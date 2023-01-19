@@ -71,6 +71,9 @@ func handleConnection(nconn net.Conn) {
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Print: GET request")
+	fmt.Fprintf(w, "GET request\n")
+
 	fmt.Fprintf(w, "The current time is: %s\n", time.Now())
 
 	if r.Method == "POST" {
@@ -143,6 +146,10 @@ func main() {
 
 func home(w http.ResponseWriter, r *http.Request) {
 	homeTemplate.Execute(w, "ws://"+r.Host+"/ws")
+
+	if (r.FormValue("message")) != "" {
+		fmt.Println("Message received: ", r.FormValue("message"))
+	}
 }
 
 var homeTemplate = template.Must(template.New("").Parse(`
