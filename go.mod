@@ -2,10 +2,10 @@ module github.com/pynezz/go-chat-server
 
 go 1.19
 
-require github.com/go-redis/redis v6.15.9+incompatible
+require github.com/gomodule/redigo v1.8.9
 
 require (
-	github.com/gomodule/redigo v1.8.9 // indirect
-	github.com/onsi/ginkgo v1.16.5 // indirect
-	github.com/onsi/gomega v1.25.0 // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/gorilla/websocket v1.5.0
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

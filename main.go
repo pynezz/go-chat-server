@@ -3,10 +3,14 @@ package main
 import (
 	"fmt"
 	"html/template"
+	"log"
 	"net"
+	"net/http"
 	"os"
+	"time"
 
 	"github.com/gomodule/redigo/redis"
+	"github.com/gorilla/websocket"
 )
 
 // func initRedis() *redis.Client {
@@ -66,7 +70,43 @@ func handleConnection(nconn net.Conn) {
 	}
 }
 
+func handler(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "The current time is: %s", time.Now())
+}
+
+var upgrader = websocket.Upgrader{} // use default options
+
+func websocketHandler(w http.ResponseWriter, r *http.Request) {
+	ws, err := upgrader.Upgrade(w, r, nil)
+
+	if err != nil {
+		log.Print("upgrade:", err)
+		return
+	}
+	defer ws.Close()
+
+	for {
+		mt, message, err := ws.ReadMessage()
+
+		if err != nil {
+			fmt.Fprintf(w, "%+v", err)
+		}
+		fmt.Printf("Received: %s", message)
+		err = ws.WriteMessage(mt, message)
+		if err != nil {
+			fmt.Fprintf(w, "%+v", err)
+		}
+	}
+}
+
 func main() {
+	http.HandleFunc("/", home)
+	http.HandleFunc("/ws", websocketHandler)
+
+	http.HandleFunc("/chat", handler)
+
+	port := os.Getenv("PORT")
+	http.ListenAndServe(":"+port, nil)
 
 	// Listen for incoming connections
 	listener, err := net.Listen("tcp", os.Getenv("PORT"))
@@ -87,6 +127,10 @@ func main() {
 
 		go handleConnection(conn)
 	}
+}
+
+func home(w http.ResponseWriter, r *http.Request) {
+	homeTemplate.Execute(w, "ws://"+r.Host+"/ws")
 }
 
 var homeTemplate = template.Must(template.New("").Parse(`
@@ -123,7 +167,7 @@ function testConnection() {
 	pconnectionStatus.innerHTML = "Sent: " + input;
 	poutput.innerHTML += "Sent: " + input + " " + new Date().toLocaleString();
 
-	
+
 }
 </script>
 </head>
