@@ -74,6 +74,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "The current time is: %s\n", time.Now())
 
 	if r.Method == "POST" {
+		fmt.Println("POST request")
 		fmt.Fprintf(w, "POST request\n")
 
 		r.GetBody()
