@@ -119,9 +119,9 @@ func main() {
 	http.HandleFunc("/chat", handler)
 
 	fmt.Println("Starting server on port 3333")
-
 	port := os.Getenv("PORT")
 	http.ListenAndServe(":"+port, nil)
+	fmt.Println("Server started on port ", port)
 
 	// Listen for incoming connections
 	listener, err := net.Listen("tcp", os.Getenv("PORT"))
@@ -161,6 +161,7 @@ var homeTemplate = template.Must(template.New("").Parse(`
 body {
 	font-family: Arial, Helvetica, sans-serif;
 }
+</style>
 
 <script>
 const PORT = process.env.PORT || 3333;
